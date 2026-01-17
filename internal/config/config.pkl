@@ -1,0 +1,8 @@
+@go.Package { name = "codeberg.com/makila/minecraftgo/internal/serverconfig" }
+module codeberg.org/makila/minecraftgo
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.12.1#/go.pkl" 
+
+motd: String
+
+port: String

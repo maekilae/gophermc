@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-func StatusResponse(r net.Conn) {
+func StatusResponse(c net.Conn) {
 	statusResponse, _ := json.Marshal(map[string]interface{}{
 		"version": map[string]interface{}{
 			"name":     "1.21.11",
@@ -27,5 +27,5 @@ func StatusResponse(r net.Conn) {
 	// Packet ID 0x00: Status Response
 	// String is a VarInt length followed by bytes
 	respData := append(packet.WriteVarInt(len(statusResponse)), statusResponse...)
-	r.Write(packet.WritePacket(0x00, respData))
+	packet.WritePacket(c, 0x00, respData)
 }

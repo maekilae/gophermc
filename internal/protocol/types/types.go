@@ -1,4 +1,4 @@
-package packet
+package types
 
 import (
 	"bufio"
@@ -71,6 +71,7 @@ func ReadUShort(reader *bufio.Reader) (uint16, error) {
 	}
 	return binary.BigEndian.Uint16(buf), nil
 }
+func ReadArray(r *bufio.Reader) {}
 
 func WriteVarInt(value int) []byte {
 	var res []byte

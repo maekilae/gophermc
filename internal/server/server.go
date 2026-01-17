@@ -1,125 +1,110 @@
 package server
 
 import (
-	"bytes"
-	"codeberg.org/makila/minecraftgo/internal/client"
-	"codeberg.org/makila/minecraftgo/internal/packet"
-	"context"
-	"encoding/binary"
-	"fmt"
-	"io"
+	"bufio"
+	"log/slog"
 	"net"
 	"sync"
+	"time"
+
+	"codeberg.org/makila/minecraftgo/internal/packet"
 )
 
 type Server struct {
-
-	//Basic server name for readability
 	Name string
 
-	//Network Address for our server
 	addr    string
 	tcpaddr *net.TCPAddr
+	port    string
 
-	//Our listener
-	listenerConfig net.ListenConfig
-	listener       net.Listener
+	listener net.Listener
 
-	nrClients uint16
-	clients   []client.Client
+	players map[string]net.Conn
 
-	//Concurrency, Context & sync
-	srvWG     *sync.WaitGroup
-	srvCtx    context.Context
-	srvCancel context.CancelFunc
-	mu        sync.Mutex
+	mu sync.Mutex
+
+	log *slog.Logger
 }
 
-func NewServer(name, protocol string, port string) Server {
+func NewServer(name, protocol string, port string) *Server {
 	ln, err := net.Listen(protocol, port)
 	if err != nil {
 		panic(err)
 	}
 
-	return Server{
+	return &Server{
 		Name: name,
 
 		addr: "127.0.0.1",
+		port: port,
 
-		listener:  ln,
-		nrClients: 0,
+		listener: ln,
+
+		log: slog.Default().WithGroup("Server"),
 	}
 
 }
 
-func (s *Server) RunServer() {}
-
-func HandleConnection(conn net.Conn) {
-	defer conn.Close()
-
-	// 1. READ HANDSHAKE (Packet ID 0x00)
-	_, _ = packet.ReadVarInt(conn) // Total Length
-	packetID, _ := packet.ReadVarInt(conn)
-	if packetID == 0x00 {
-		packet.ReadVarInt(conn) // Protocol Version
-		hostLen, _ := packet.ReadVarInt(conn)
-		host := make([]byte, hostLen)
-		io.ReadFull(conn, host) // Server Address
-		var port uint16
-		binary.Read(conn, binary.BigEndian, &port)
-		nextState, _ := packet.ReadVarInt(conn)
-
-		if nextState != 1 {
-			loginReq(conn)
-		} else {
-
-			_, _ = packet.ReadVarInt(conn) // Length
-			if packetID == 0x00 {
-				fmt.Printf("[%s] Status Requested\n", conn.RemoteAddr())
-				StatusResponse(conn)
-			}
-			return
+func (s *Server) RunServer() {
+	slog.Info("Starting Server", slog.String("port", s.port))
+	defer s.listener.Close()
+	for {
+		c, e := s.listener.Accept()
+		if e == nil {
+			go s.HandleConnection(c)
 		}
 	}
-	if packetID == 0x01 {
-		var payload int64
-		binary.Read(conn, binary.BigEndian, &payload)
-		fmt.Printf("[%s] Ping Received: %d\n", conn.RemoteAddr(), payload)
-		buf := new(bytes.Buffer)
+}
 
-		// 1. Packet ID (0x01)
-		// We write it as a VarInt (which for 0x01 is just 0x01)
-		buf.WriteByte(0x01)
+func (s *Server) HandleConnection(conn net.Conn) {
+	defer conn.Close()
+	r := bufio.NewReader(conn)
 
-		// 2. Payload (Long)
-		// The spec says: Signed 64-bit integer, two's complement.
-		// binary.Write handles int64 (Long) correctly in BigEndian.
-		binary.Write(buf, binary.BigEndian, payload)
+	nextState := handshake(conn, r)
 
-		// 3. Construct final packet with Length Header
-		// Total length = ID (1 byte) + Long (8 bytes) = 9 bytes
-		finalPacket := make([]byte, 0)
-		finalPacket = append(finalPacket, 0x09) // Length VarInt
-		finalPacket = append(finalPacket, buf.Bytes()...)
+	if nextState == 1 {
+		_, _ = packet.ReadVarInt(r) // Length
+		packetID, _ := packet.ReadVarInt(r)
+		if packetID == 0x00 {
+			slog.Info("Status Requested")
+			StatusResponse(conn)
+		}
+		if packetID == 0x01 {
+			slog.Info("Ping Requested")
+		}
+		return
+	}
 
-		conn.Write(finalPacket)
+	for {
+		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+		_, _ = packet.ReadVarInt(r)
+		pID, _ := packet.ReadVarInt(r)
+		if pID == 0x00 && nextState != -1 {
+			loginReq(r)
+			nextState = -1
+		}
 	}
 }
 
-func loginReq(r io.Reader) {
-	nameLen, _ := packet.ReadVarInt(r)
-	nameBuf := make([]byte, nameLen)
-	io.ReadFull(r, nameBuf)
-	username := string(nameBuf)
+func handshake(conn net.Conn, r *bufio.Reader) int {
+	packetLen, _ := packet.ReadVarInt(r) // Total Length
+	packetID, _ := packet.ReadVarInt(r)
+	if packetID == 0x00 {
+		protocolVer, _ := packet.ReadVarInt(r) // Protocol Version
+		host, _ := packet.ReadString(r)
+		port, _ := packet.ReadUShort(r)
+		nextState, _ := packet.ReadVarInt(r)
 
-	u, _ := packet.ReadUUID(r)
-	uuid := fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
-		uint32(u.MostSig>>32),     // First 8 hex chars
-		uint16(u.MostSig>>16),     // Next 4
-		uint16(u.MostSig),         // Next 4
-		uint16(u.LeastSig>>48),    // Next 4
-		u.LeastSig&0xFFFFFFFFFFFF) // Final 12
-	fmt.Printf(`Username: %s`, username)
-	fmt.Printf("UUID: %s", uuid)
+		slog.Info("Packet", "Len", packetLen, "Protocol.V", protocolVer, "Host", host, "Port", port)
+		return int(nextState)
+	}
+	return -1
+}
+
+func loginReq(r *bufio.Reader) {
+	username, _ := packet.ReadString(r)
+
+	_, _ = packet.ReadUUID(r)
+	slog.Info("New login request", "Uname", username)
 
 }

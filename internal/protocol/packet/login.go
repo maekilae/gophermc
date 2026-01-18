@@ -19,9 +19,9 @@ func (en *Encryption) ID() int32 {
 
 func (en *Encryption) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	buf.Write(types.WriteVarInt(len(en.ServerID)))
-	buf.Write(en.PubKey)
-	buf.Write(en.Token)
+	buf.Write(types.WriteString(en.ServerID))
+	buf.Write(types.WriteByteArray(en.PubKey))
+	buf.Write(types.WriteByteArray(en.Token))
 	if en.ShouldAuth {
 		buf.WriteByte(0x01)
 	} else {
@@ -30,4 +30,3 @@ func (en *Encryption) Marshal() ([]byte, error) {
 	return buf.Bytes(), nil
 
 }
-

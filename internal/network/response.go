@@ -1,9 +1,10 @@
-package server
+package network
 
 import (
-	"codeberg.org/makila/minecraftgo/internal/packet"
 	"encoding/json"
 	"net"
+
+	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 func StatusResponse(c net.Conn) {
@@ -26,6 +27,6 @@ func StatusResponse(c net.Conn) {
 
 	// Packet ID 0x00: Status Response
 	// String is a VarInt length followed by bytes
-	respData := append(packet.WriteVarInt(len(statusResponse)), statusResponse...)
-	packet.WritePacket(c, 0x00, respData)
+	respData := append(types.WriteVarInt(len(statusResponse)), statusResponse...)
+	WritePacket(c, 0x00, respData)
 }

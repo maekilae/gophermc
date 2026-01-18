@@ -2,12 +2,12 @@ package main
 
 import (
 	"codeberg.org/makila/minecraftgo/internal/logger"
-	"codeberg.org/makila/minecraftgo/internal/server"
+	"codeberg.org/makila/minecraftgo/internal/network"
 )
 
 func main() {
 	logger.Init("log.json")
-	s := server.NewServer("MinecraftServer", "tcp", ":25565")
+	s := network.NewServer("MinecraftServer", "tcp", ":25565")
 	s.RunServer()
 
 }

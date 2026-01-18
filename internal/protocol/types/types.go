@@ -90,6 +90,47 @@ func WriteVarInt(value int) []byte {
 	return res
 }
 
+func WriteString(s string) []byte {
+	// Convert the string to a byte slice
+	strBytes := []byte(s)
+
+	// 1. Write the length as a VarInt
+	buf := WriteVarInt(int(len(strBytes)))
+	buf = append(buf, strBytes...)
+
+	return buf
+
+}
+
+func ReadByteArray(r *bufio.Reader) ([]byte, error) {
+	// 1. Read the length of the array
+	length, err := ReadVarInt(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read array length: %w", err)
+	}
+
+	// 2. Safety Check: Prevent "Memory Exhaustion" attacks.
+	// A malicious client could send a VarInt of 2,147,483,647 to crash your RAM.
+	if length < 0 || length > 32767 {
+		return nil, fmt.Errorf("prefixed array length out of bounds: %d", length)
+	}
+
+	// 3. Read the actual bytes
+	data := make([]byte, length)
+	_, err = io.ReadFull(r, data) // Use ReadFull to ensure we get exactly 'length' bytes
+	if err != nil {
+		return nil, fmt.Errorf("failed to read array data: %w", err)
+	}
+
+	return data, nil
+}
+
+func WriteByteArray(data []byte) []byte {
+	buf := WriteVarInt(len(data))
+	buf = append(buf, data...)
+	return buf
+}
+
 // ReadUUID reads 16 bytes and splits them into two uint64s
 func ReadUUID(r io.Reader) (UUID, error) {
 	var u UUID

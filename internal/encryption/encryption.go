@@ -29,3 +29,10 @@ func (k *Keys) PubKeyToBytes() ([]byte, error) {
 	}
 	return pubBytes, nil
 }
+func (k *Keys) Decrypt(data []byte) ([]byte, error) {
+	return rsa.DecryptPKCS1v15(rand.Reader, k.key, data)
+}
+
+func ParseKeyStream(data []byte) (any, error) {
+	return x509.ParsePKIXPublicKey(data)
+}

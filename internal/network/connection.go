@@ -2,17 +2,24 @@ package network
 
 import (
 	"bufio"
+	"crypto/md5"
 	"crypto/rand"
+	"fmt"
 	"log/slog"
 	"net"
 	"time"
 
+	"codeberg.org/makila/minecraftgo/internal/api"
+	"codeberg.org/makila/minecraftgo/internal/game/player"
 	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
+
+	"github.com/google/uuid"
 )
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
+	p := player.Player{}
 	r := bufio.NewReader(conn)
 
 	nextState := handshake(r)
@@ -34,14 +41,24 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		_, _ = types.ReadVarInt(r)
 		pID, _ := types.ReadVarInt(r)
 		if pID == 0x00 && nextState != -1 {
-			s.loginReq(r, conn)
+			p.Name = s.loginReq(r, conn)
 			nextState = -1
 		}
 		if pID == 0x01 && nextState == -1 {
 			ss, _ := types.ReadByteArray(r)
 			t, _ := types.ReadByteArray(r)
 			// NOTE REMOVE LOG MSG
+			ss, _ = s.Key.Decrypt(ss)
+			t, _ = s.Key.Decrypt(t)
+			fmt.Println(t)
 			slog.Info("Encryption Response", "Shared Secret", ss, "Token", t)
+			k, _ := s.Key.PubKeyToBytes()
+			pd, e := api.SendHash(p.Name, api.AuthDigest("", ss, k))
+			if e != nil {
+				slog.Error("Could not authenticate with mojang")
+			}
+			fmt.Println(pd)
+
 		}
 	}
 }
@@ -61,14 +78,15 @@ func handshake(r *bufio.Reader) int {
 	return -1
 }
 
-func (s *Server) loginReq(r *bufio.Reader, conn net.Conn) {
+func (s *Server) loginReq(r *bufio.Reader, conn net.Conn) string {
 	username, _ := types.ReadString(r)
-
 	_, _ = types.ReadUUID(r)
+
 	slog.Info("New login request", "Username", username)
 	k, _ := s.Key.PubKeyToBytes()
 	t := make([]byte, 4)
 	_, _ = rand.Read(t)
+	fmt.Println(t)
 	en := packet.Encryption{
 		ServerID:   "",
 		PubKey:     k,
@@ -77,4 +95,17 @@ func (s *Server) loginReq(r *bufio.Reader, conn net.Conn) {
 	}
 	resp, _ := en.Marshal()
 	WritePacket(conn, int(en.ID()), resp)
+	return username
+}
+
+func NameToUUID(name string) uuid.UUID {
+	version := 3
+	h := md5.New()
+	h.Write([]byte("OfflinePlayer:"))
+	h.Write([]byte(name))
+	var id uuid.UUID
+	h.Sum(id[:0])
+	id[6] = (id[6] & 0x0f) | uint8((version&0xf)<<4)
+	id[8] = (id[8] & 0x3f) | 0x80 // RFC 4122 variant
+	return id
 }

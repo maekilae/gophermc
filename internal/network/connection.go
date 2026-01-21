@@ -9,27 +9,23 @@ import (
 	"net"
 	"time"
 
-	"codeberg.org/makila/minecraftgo/internal/api"
-	"codeberg.org/makila/minecraftgo/internal/game/player"
 	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 
 	"github.com/google/uuid"
 )
 
-func (s *Server) HandleConnection(conn net.Conn) {
+func (s *Server) HandleConnection(conn Conn) {
 	defer conn.Close()
-	p := player.Player{}
-	r := bufio.NewReader(conn)
 
-	nextState := handshake(r)
+	nextState := handshake(&conn.Reader)
 
 	if nextState == 1 {
-		_, _ = types.ReadVarInt(r) // Length
-		packetID, _ := types.ReadVarInt(r)
+		_, _ = types.ReadVarInt(&conn.Reader) // Length
+		packetID, _ := types.ReadVarInt(&conn.Reader)
 		if packetID == 0x00 {
 			slog.Info("Status Requested")
-			StatusResponse(conn)
+			StatusResponse(&conn)
 		} else {
 			slog.Info("Ping Requested")
 		}
@@ -37,29 +33,30 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-		_, _ = types.ReadVarInt(r)
-		pID, _ := types.ReadVarInt(r)
+		conn.Socket.SetReadDeadline(time.Now().Add(30 * time.Second))
+		_, _ = types.ReadVarInt(&conn.Reader)
+		pID, _ := types.ReadVarInt(&conn.Reader)
 		if pID == 0x00 && nextState != -1 {
-			p.Name = s.loginReq(r, conn)
+			// p.Name = s.loginReq(r, conn)
+			_, _ = s.StartLogin(&conn)
 			nextState = -1
 		}
-		if pID == 0x01 && nextState == -1 {
-			ss, _ := types.ReadByteArray(r)
-			t, _ := types.ReadByteArray(r)
-			// NOTE REMOVE LOG MSG
-			ss, _ = s.Key.Decrypt(ss)
-			t, _ = s.Key.Decrypt(t)
-			fmt.Println(t)
-			slog.Info("Encryption Response", "Shared Secret", ss, "Token", t)
-			k, _ := s.Key.PubKeyToBytes()
-			pd, e := api.SendHash(p.Name, api.AuthDigest("", ss, k))
-			if e != nil {
-				slog.Error("Could not authenticate with mojang")
-			}
-			fmt.Println(pd)
-
-		}
+		// if pID == 0x01 && nextState == -1 {
+		// 	ss, _ := types.ReadByteArray(&conn.Reader)
+		// 	t, _ := types.ReadByteArray(&conn.Reader)
+		// 	// NOTE REMOVE LOG MSG
+		// 	ss, _ = s.Key.Decrypt(ss)
+		// 	t, _ = s.Key.Decrypt(t)
+		// 	fmt.Println(t)
+		// 	slog.Info("Encryption Response", "Shared Secret", ss, "Token", t)
+		// 	k, _ := s.Key.PubKeyToBytes()
+		// 	pd, e := api.SendHash(Name, api.AuthDigest("", ss, k))
+		// 	if e != nil {
+		// 		slog.Error("Could not authenticate with mojang")
+		// 	}
+		// 	fmt.Println(pd)
+		//
+		// }
 	}
 }
 
@@ -93,8 +90,8 @@ func (s *Server) loginReq(r *bufio.Reader, conn net.Conn) string {
 		Token:      t,
 		ShouldAuth: false,
 	}
-	resp, _ := en.Marshal()
-	WritePacket(conn, int(en.ID()), resp)
+	_, _ = en.Marshal()
+	// WritePacket(conn, int(en.ID()), resp)
 	return username
 }
 

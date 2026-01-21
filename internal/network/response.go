@@ -2,12 +2,11 @@ package network
 
 import (
 	"encoding/json"
-	"net"
 
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
-func StatusResponse(c net.Conn) {
+func StatusResponse(c *Conn) {
 	statusResponse, _ := json.Marshal(map[string]interface{}{
 		"version": map[string]interface{}{
 			"name":     "1.21.11",

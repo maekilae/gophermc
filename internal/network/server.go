@@ -16,17 +16,19 @@ type Server struct {
 	tcpaddr *net.TCPAddr
 	port    string
 
-	listener net.Listener
+	listener *Listener
 
 	players map[string]net.Conn
 
 	mu sync.Mutex
 
 	log *slog.Logger
+
+	LoginHandler
 }
 
 func NewServer(name, protocol string, port string) *Server {
-	ln, err := net.Listen(protocol, port)
+	ln, err := ListenMC(port)
 	if err != nil {
 		panic(err)
 	}

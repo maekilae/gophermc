@@ -1,8 +1,6 @@
 package network
 
 import (
-	"net"
-
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
@@ -29,7 +27,7 @@ func createPacket(id int, data []byte) Packet {
 }
 
 // WritePacket wraps a packet ID and data with its length.
-func WritePacket(c net.Conn, id int, data []byte) {
+func WritePacket(c *Conn, id int, data []byte) {
 	p := createPacket(id, data)
 	size := len(p.header.length) + len(p.header.packet_id) + len(p.data)
 	buffer := make([]byte, 0, size)

@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,8 +25,8 @@ type Property struct {
 func SendHash(u string, h string) (PlayerData, error) {
 	var content PlayerData
 	params := url.Values{}
-	params.Add("username", u)
 	params.Add("serverId", h)
+	params.Add("username", u)
 	au := "https://sessionserver.mojang.com/session/minecraft/hasJoined?" + params.Encode()
 	fmt.Println(au)
 	resp, err := http.Get(au)
@@ -45,7 +44,7 @@ func SendHash(u string, h string) (PlayerData, error) {
 
 func AuthDigest(serverId string, sharedSecret []byte, publicKey []byte) string {
 	h := sha1.New()
-	io.WriteString(h, serverId)
+	h.Write([]byte(serverId))
 	h.Write(sharedSecret)
 	h.Write(publicKey)
 	hash := h.Sum(nil)
@@ -57,7 +56,7 @@ func AuthDigest(serverId string, sharedSecret []byte, publicKey []byte) string {
 	}
 
 	// Minecraft trims leading zeros and uses lowercase hex
-	res := strings.TrimLeft(hex.EncodeToString(hash), "0")
+	res := strings.TrimLeft(fmt.Sprintf("%x", hash), "0")
 	if negative {
 		res = "-" + res
 	}
@@ -69,7 +68,7 @@ func AuthDigest(serverId string, sharedSecret []byte, publicKey []byte) string {
 func twosComplement(p []byte) []byte {
 	carry := true
 	for i := len(p) - 1; i >= 0; i-- {
-		p[i] = ^p[i] // bitwise NOT
+		p[i] = byte(^p[i]) // bitwise NOT
 		if carry {
 			carry = (p[i] == 0xff)
 			p[i]++

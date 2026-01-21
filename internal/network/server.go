@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 
+	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/encryption"
 )
 
@@ -27,7 +28,7 @@ type Server struct {
 	LoginHandler
 }
 
-func NewServer(name, protocol string, port string) *Server {
+func NewServer(name, port string, db *db.McDB) *Server {
 	ln, err := ListenMC(port)
 	if err != nil {
 		panic(err)

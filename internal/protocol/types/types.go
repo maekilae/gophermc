@@ -10,15 +10,33 @@ import (
 	"github.com/google/uuid"
 )
 
-type UUID struct {
-	MostSig  uint64
-	LeastSig uint64
-}
-
 const (
 	SegmentBits = 0x7F
 	ContinueBit = 0x80
 )
+
+type (
+	VarInt int32
+)
+
+func (t VarInt) FromBytes() {}
+
+func (t VarInt) ToBytes(buf []byte) (n int) {
+	ut := uint32(t)
+	for {
+		b := byte(ut & 0x7F)
+		ut >>= 7
+		if ut != 0 {
+			b |= 0x80
+		}
+		buf = append(buf, b)
+		if ut == 0 {
+			break
+		}
+		n++
+	}
+	return n
+}
 
 func ReadVarInt(reader *bufio.Reader) (int32, error) {
 	var value int32
@@ -134,13 +152,11 @@ func WriteByteArray(data []byte) []byte {
 }
 
 // ReadUUID reads 16 bytes and splits them into two uint64s
-func ReadUUID(r io.Reader) (UUID, error) {
-	var u UUID
-	err := binary.Read(r, binary.BigEndian, &u.MostSig)
-	if err != nil {
-		return u, err
-	}
-	err = binary.Read(r, binary.BigEndian, &u.LeastSig)
+func ReadUUID(r io.Reader) (uuid.UUID, error) {
+	var buf []byte
+
+	r.Read(buf)
+	u, err := uuid.FromBytes(buf)
 	return u, err
 }
 

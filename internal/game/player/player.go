@@ -1,15 +1,17 @@
 package player
 
 import (
-	"net"
-
-	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
+	"github.com/google/uuid"
 )
 
-type Player struct {
-	Name string
-	Uuid string
+type Properties struct {
+	Name      string
+	Value     string
+	Signature string
+}
 
-	Conn  net.Conn
-	State packet.State
+type Player struct {
+	Username string
+	Uuid     uuid.UUID
+	Props    Properties
 }

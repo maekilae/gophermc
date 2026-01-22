@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
+	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 type Listener struct{ net.Listener }
@@ -23,9 +24,10 @@ func ListenMC(addr string) (*Listener, error) {
 func (l Listener) Accept() (Conn, error) {
 	conn, err := l.Listener.Accept()
 	return Conn{
-		Socket: conn,
-		Reader: *bufio.NewReader(conn),
-		Writer: conn,
+		Socket:       conn,
+		Reader:       *bufio.NewReader(conn),
+		Writer:       conn,
+		isCompressed: false,
 	}, err
 }
 
@@ -33,6 +35,7 @@ type Conn struct {
 	Socket net.Conn
 	bufio.Reader
 	io.Writer
+	isCompressed bool
 }
 
 func (c *Conn) Close() {
@@ -42,4 +45,11 @@ func (c *Conn) Close() {
 func (c *Conn) WritePacket(p packet.Packet) {
 	bp, _ := p.Marshal()
 	WritePacket(c, int(p.ID()), bp)
+}
+
+func (c *Conn) ReadPacket() (int32, int32) {
+	size, _ := types.ReadVarInt(&c.Reader)
+	id, _ := types.ReadVarInt(&c.Reader)
+	return id, size
+
 }

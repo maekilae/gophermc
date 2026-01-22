@@ -38,7 +38,7 @@ func (s *Server) HandleConnection(conn Conn) {
 		pID, _ := types.ReadVarInt(&conn.Reader)
 		if pID == 0x00 && nextState != -1 {
 			// p.Name = s.loginReq(r, conn)
-			_, _ = s.StartLogin(&conn)
+			_, _, _ = s.StartLogin(&conn)
 			nextState = -1
 		}
 		// if pID == 0x01 && nextState == -1 {

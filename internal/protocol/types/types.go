@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/google/uuid"
 )
 
 type UUID struct {
@@ -143,10 +145,7 @@ func ReadUUID(r io.Reader) (UUID, error) {
 }
 
 // WriteUUID writes the two uint64s as a 16-byte block
-func WriteUUID(w io.Writer, u UUID) error {
-	err := binary.Write(w, binary.BigEndian, u.MostSig)
-	if err != nil {
-		return err
-	}
-	return binary.Write(w, binary.BigEndian, u.LeastSig)
+func WriteUUID(u uuid.UUID) []byte {
+	return u[:]
+
 }

@@ -3,6 +3,7 @@ package packet
 import (
 	"bytes"
 
+	"codeberg.org/makila/minecraftgo/internal/game/player"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
@@ -29,4 +30,23 @@ func (en *Encryption) Marshal() ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 
+}
+
+type LoginSuccess struct {
+	Profile player.Player
+}
+
+func (ls *LoginSuccess) ID() int32 {
+	return 0x02
+}
+func (ls *LoginSuccess) Marshal() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	uuid := types.WriteUUID(ls.Profile.Uuid)
+	buf.Write(uuid)
+	buf.Write(types.WriteString(ls.Profile.Username))
+	buf.Write(types.WriteString(ls.Profile.Props.Name))
+	buf.Write(types.WriteString(ls.Profile.Props.Value))
+	buf.Write(types.WriteString(ls.Profile.Props.Signature))
+
+	return buf.Bytes(), nil
 }

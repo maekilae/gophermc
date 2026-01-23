@@ -19,7 +19,30 @@ type (
 	VarInt int32
 )
 
-func (t VarInt) FromBytes() {}
+func (t VarInt) FromReader(reader bufio.Reader) (value int32, err error) {
+	var position uint
+
+	for {
+		currentByte, err := reader.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+
+		value |= int32(currentByte&SegmentBits) << position
+
+		if (currentByte & ContinueBit) == 0 {
+			break
+		}
+
+		position += 7
+
+		if position >= 32 {
+			return 0, errors.New("VarInt is too big")
+		}
+	}
+
+	return value, nil
+}
 
 func (t VarInt) ToBytes(buf []byte) (n int) {
 	ut := uint32(t)

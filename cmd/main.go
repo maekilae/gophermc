@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -16,7 +17,16 @@ func main() {
 		slog.Error("Could not open db", "Error", err)
 		os.Exit(1)
 	}
+	go commands()
 	s := network.NewServer("MinecraftServer", ":25565", db)
 	s.RunServer()
+
+}
+
+func commands() {
+	var cmd string
+	for {
+		fmt.Scan(&cmd)
+	}
 
 }

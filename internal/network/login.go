@@ -52,5 +52,6 @@ func (s *Server) StartLogin(conn *Conn) (uname string, id uuid.UUID, err error) 
 		slog.Error("Could not authenticate with mojang")
 	}
 	fmt.Println(pd)
+	WritePacket(conn, 0x02, pd.Marshal())
 	return uname, uuid.UUID{}, err
 }

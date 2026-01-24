@@ -41,12 +41,7 @@ func (ls *LoginSuccess) ID() int32 {
 }
 func (ls *LoginSuccess) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	uuid := types.WriteUUID(ls.Profile.Uuid)
-	buf.Write(uuid)
-	buf.Write(types.WriteString(ls.Profile.Username))
-	buf.Write(types.WriteString(ls.Profile.Props.Name))
-	buf.Write(types.WriteString(ls.Profile.Props.Value))
-	buf.Write(types.WriteString(ls.Profile.Props.Signature))
+	buf.Write(ls.Profile.Marshal())
 
 	return buf.Bytes(), nil
 }

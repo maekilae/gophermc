@@ -7,6 +7,7 @@ import (
 
 	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/encryption"
+	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
 )
 
 type Server struct {
@@ -19,7 +20,8 @@ type Server struct {
 
 	listener *Listener
 
-	players map[string]net.Conn
+	Info    packet.ServerStatus
+	Players map[string]net.Conn
 
 	mu sync.Mutex
 

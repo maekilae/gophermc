@@ -52,6 +52,11 @@ func (s *Server) StartLogin(conn *Conn) (uname string, id uuid.UUID, err error) 
 		slog.Error("Could not authenticate with mojang")
 	}
 	fmt.Println(pd)
-	WritePacket(conn, 0x02, pd.Marshal())
+	if conn.threshold > -1 {
+		pk := packet.SetCompression{Threshold: types.VarInt(conn.threshold)}
+		WritePacket(conn, int(pk.ID()), pk.Marshal())
+		conn.isCompressed = true
+	}
+	// WritePacket(conn, pd.ID, pd.Marshal())
 	return uname, uuid.UUID{}, err
 }

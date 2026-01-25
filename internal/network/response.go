@@ -3,11 +3,12 @@ package network
 import (
 	"encoding/json"
 
+	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 func StatusResponse(c *Conn) {
-	statusResponse, _ := json.Marshal(map[string]interface{}{
+	statusResponse := map[string]interface{}{
 		"version": map[string]interface{}{
 			"name":     "1.21.11",
 			"protocol": 774,
@@ -22,10 +23,12 @@ func StatusResponse(c *Conn) {
 		"description": map[string]string{
 			"text": "§bHello from §aGo§f Server!",
 		},
-	})
+	}
 
 	// Packet ID 0x00: Status Response
 	// String is a VarInt length followed by bytes
-	respData := append(types.WriteVarInt(len(statusResponse)), statusResponse...)
-	WritePacket(c, 0x00, respData)
+	// respData := append(types.WriteVarInt(len(statusResponse)), statusResponse...)
+	respData := packet.StatusResp{statusResponse}
+
+	c.WritePacket(c, 0x00, respData)
 }

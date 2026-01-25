@@ -1,15 +1,41 @@
 package packet
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
-type StatusResp struct {
-	Json string
+type ServerStatus struct {
+	Version            Version     `json:"version"`
+	Players            Players     `json:"players"`
+	Description        Description `json:"description"`
+	Favicon            string      `json:"favicon"`
+	EnforcesSecureChat bool        `json:"enforcesSecureChat"`
 }
 
-func (s *StatusResp) ID() int32 {
+type Version struct {
+	Name     string `json:"name"`
+	Protocol int    `json:"protocol"`
+}
+
+type Players struct {
+	Max    int      `json:"max"`
+	Online int      `json:"online"`
+	Sample []Player `json:"sample"`
+}
+
+type Player struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type Description struct {
+	Text string `json:"text"`
+}
+
+func (pk *ServerStatus) ID() int32 {
 	return 0x00
 }
 
-func (s *StatusResp) Marshal() ([]byte, error) {
-	return json.Marshal(s.Json)
+func (pk *ServerStatus) Marshal() ([]byte, error) {
+	return json.Marshal(pk)
 }

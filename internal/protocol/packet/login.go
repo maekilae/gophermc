@@ -45,3 +45,16 @@ func (ls *LoginSuccess) Marshal() ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
+type SetCompression struct {
+	Threshold types.VarInt
+}
+
+func (pk *SetCompression) ID() int32 {
+	return 0x03
+}
+
+func (pk *SetCompression) Marshal() (buf []byte) {
+	pk.Threshold.ToBytes(buf)
+	return
+}

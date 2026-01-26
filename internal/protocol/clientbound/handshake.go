@@ -1,4 +1,4 @@
-package packet
+package clientbound
 
 import (
 	"bufio"

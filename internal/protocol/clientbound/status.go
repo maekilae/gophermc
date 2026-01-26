@@ -1,7 +1,9 @@
-package packet
+package clientbound
 
 import (
 	"encoding/json"
+
+	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 type ServerStatus struct {
@@ -32,10 +34,13 @@ type Description struct {
 	Text string `json:"text"`
 }
 
-func (pk *ServerStatus) ID() int32 {
+func (pk ServerStatus) ID() int32 {
 	return 0x00
 }
 
-func (pk *ServerStatus) Marshal() ([]byte, error) {
-	return json.Marshal(pk)
+func (pk ServerStatus) Marshal() (buf []byte, err error) {
+	data, _ := json.Marshal(pk)
+	types.VarInt(len(data)).ToBytes(buf)
+	buf = append(buf,data...)
+	return
 }

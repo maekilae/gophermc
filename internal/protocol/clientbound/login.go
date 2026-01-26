@@ -1,4 +1,4 @@
-package packet
+package clientbound
 
 import (
 	"bytes"
@@ -14,11 +14,11 @@ type Encryption struct {
 	ShouldAuth bool
 }
 
-func (en *Encryption) ID() int32 {
+func (en Encryption) ID() int32 {
 	return 0x01
 }
 
-func (en *Encryption) Marshal() ([]byte, error) {
+func (en Encryption) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.Write(types.WriteString(en.ServerID))
 	buf.Write(types.WriteByteArray(en.PubKey))
@@ -36,10 +36,10 @@ type LoginSuccess struct {
 	Profile player.Player
 }
 
-func (ls *LoginSuccess) ID() int32 {
+func (ls LoginSuccess) ID() int32 {
 	return 0x02
 }
-func (ls *LoginSuccess) Marshal() ([]byte, error) {
+func (ls LoginSuccess) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.Write(ls.Profile.Marshal())
 
@@ -50,11 +50,11 @@ type SetCompression struct {
 	Threshold types.VarInt
 }
 
-func (pk *SetCompression) ID() int32 {
+func (pk SetCompression) ID() int32 {
 	return 0x03
 }
 
-func (pk *SetCompression) Marshal() (buf []byte) {
+func (pk SetCompression) Marshal() (buf []byte, err error) {
 	pk.Threshold.ToBytes(buf)
 	return
 }

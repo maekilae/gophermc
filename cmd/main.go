@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/logger"
 	"codeberg.org/makila/minecraftgo/internal/network"
+	"codeberg.org/makila/minecraftgo/properties"
 )
 
 func main() {
@@ -18,6 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 	go commands()
+	properties.LoadFromPath(context.Background(),"properties.pkl")
 	s := network.NewServer("MinecraftServer", ":25565", db)
 	s.RunServer()
 

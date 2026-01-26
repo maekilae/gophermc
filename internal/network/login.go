@@ -8,7 +8,7 @@ import (
 	"log/slog"
 
 	"codeberg.org/makila/minecraftgo/internal/api"
-	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
+	packet "codeberg.org/makila/minecraftgo/internal/protocol/clientbound"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 
 	"github.com/google/uuid"
@@ -32,8 +32,8 @@ func (s *Server) StartLogin(conn *Conn) (uname string, id uuid.UUID, err error) 
 		Token:      vt,
 		ShouldAuth: true,
 	}
-	resp, _ := en.Marshal()
-	WritePacket(conn, int(en.ID()), resp)
+	// resp, _ := en.Marshal()
+	conn.WritePacket(en)
 	_, _ = conn.ReadPacket()
 	// _, _ = types.ReadVarInt(&conn.Reader)
 	// _, _ = types.ReadVarInt(&conn.Reader)
@@ -54,7 +54,7 @@ func (s *Server) StartLogin(conn *Conn) (uname string, id uuid.UUID, err error) 
 	fmt.Println(pd)
 	if conn.threshold > -1 {
 		pk := packet.SetCompression{Threshold: types.VarInt(conn.threshold)}
-		WritePacket(conn, int(pk.ID()), pk.Marshal())
+		conn.WritePacket(pk)
 		conn.isCompressed = true
 	}
 	// WritePacket(conn, pd.ID, pd.Marshal())

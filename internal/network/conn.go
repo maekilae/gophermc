@@ -2,14 +2,21 @@ package network
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"io"
 	"net"
+	"sync"
 
-	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
+	packet "codeberg.org/makila/minecraftgo/internal/protocol/clientbound"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 type Listener struct{ net.Listener }
+
+var (
+	bufPool  = sync.Pool{New: func() any { return new(bytes.Buffer) }}
+)
 
 // ListenMC listen as TCP but Accept a mc Conn
 func ListenMC(addr string) (*Listener, error) {
@@ -44,7 +51,18 @@ func (c *Conn) Close() {
 	c.Socket.Close()
 }
 
+func createHeader(id int, data []byte) (buf []byte) {
+	_ = types.VarInt(1+len(data)).ToBytes(buf)
+	fmt.Println(buf)
+	_= types.VarInt(id).ToBytes(buf)
+	return
+}
+
 func (c *Conn) WritePacket(p packet.Packet) {
+	var buf = bufPool.Get().(*bytes.Buffer)
+	defer bufPool.Put(buf)
+	buf.Reset()
+
 	var data []byte
 	if c.isCompressed == true {
 		data, _ = p.Marshal()
@@ -53,7 +71,9 @@ func (c *Conn) WritePacket(p packet.Packet) {
 		data, _ = p.Marshal()
 
 	}
-	WritePacket(c, int(p.ID()), data)
+	buf.Write(createHeader(int(p.ID()),data))
+	buf.Write(data)
+	c.Write(buf.Bytes())
 }
 
 func (c *Conn) ReadPacket() (int32, int32) {

@@ -1,0 +1,149 @@
+@go.Package { name = "codeberg.org/makila/minecraftgo/properties" }
+module makila.minecraftgo.properties
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.12.1#/go.pkl"
+
+class Version {
+	name: String
+	protocol: UInt16
+}
+
+/// The Minecraft server configuration template.
+class ServerProperties {
+
+  /// Allows users to use flight on the server while in Survival mode.
+  AllowFlight: Boolean = false
+
+  /// Allows players to travel to the Nether.
+  AllowNether: Boolean = true
+
+  /// Send console command outputs to all online operators.
+  BroadcastConsoleToOps: Boolean = true
+
+  /// Send rcon console command outputs to all online operators.
+  BroadcastRconToOps: Boolean = true
+
+  /// Options: peaceful, easy, normal, hard
+  Difficulty: "peaceful" | "easy" | "normal" | "hard" = "easy"
+
+  /// Enables command blocks.
+  EnableCommandBlock: Boolean = false
+
+  /// Exposes an MBean for JMX monitoring.
+  EnableJmxMonitoring: Boolean = false
+
+  /// Enables remote access to the server console.
+  EnableRcon: Boolean = false
+
+  /// Makes the server appear as "online" on the server list.
+  EnableStatus: Boolean = true
+
+  /// Enables GameSpy4 protocol server listener.
+  EnableQuery: Boolean = false
+
+  /// Requires Mojang-signed public keys for connection.
+  EnforceSecureProfile: Boolean = true
+
+  /// Enforces the whitelist on the server.
+  EnforceWhitelist: Boolean = false
+
+  /// Distance for entity rendering (10-1000).
+  EntityBroadcastRangePercentage: Int(this >= 10 && this <= 1000) = 100
+
+  /// Force players to join in the default game mode.
+  ForceGamemode: Boolean = false
+
+  /// Permission level for functions (1-4).
+  FunctionPermissionLevel: Int(this >= 1 && this <= 4) = 2
+
+  /// Defines the mode of gameplay.
+  Gamemode: "survival" | "creative" | "adventure" | "spectator" = "survival"
+
+  /// Defines whether structures can be generated.
+  GenerateStructures: Boolean = true
+
+  /// Settings used to customize world generation.
+  GeneratorSettings: String = "{}"
+
+  /// Hardcore mode (spectator on death).
+  Hardcore: Boolean = false
+
+  /// Hide player list on status requests.
+  HideOnlinePlayers: Boolean = false
+
+  /// Datapacks to disable/enable on creation.
+  InitialDisabledPacks: String = ""
+  InitialEnabledPacks: String = "vanilla"
+
+  /// World name and folder name.
+  LevelName: String = "world"
+  LevelSeed: String = ""
+  LevelType: String = "minecraft:normal"
+
+  /// Max consecutive neighbor updates.
+  MaxChainedNeighborUpdates: Int = 1000000
+
+  /// Maximum simultaneous players.
+  MaxPlayers: Int(this >= 0) = 20
+
+  /// Watchdog timeout in milliseconds.
+  MaxTickTime: Int = 60000
+
+  /// Maximum world border radius.
+  MaxWorldSize: Int(this >= 1 && this <= 29999984) = 29999984
+
+  /// Message of the Day.
+  Motd: String = "A Minecraft Server"
+
+  /// Packet compression threshold.
+  NetworkCompressionThreshold: Int = 256
+
+  /// Authenticate players via Mojang.
+  OnlineMode: Boolean = true
+
+  /// Default permission level for operators.
+  OpPermissionLevel: Int(this >= 0 && this <= 4) = 4
+
+  /// Kick idle players after X minutes.
+  PlayerIdleTimeout: Int = 0
+
+  /// Prevent proxy/VPN connections.
+  PreventProxyConnections: Boolean = false
+
+  /// Enable chat preview features.
+  PreviewsChat: Boolean = false
+
+  /// Enable Player vs Player.
+  Pvp: Boolean = true
+
+  /// Ports for Query and RCON.
+  QueryPort: Int(this >= 1 && this <= 65534) = 25565
+  RconPassword: String = ""
+  RconPort: Int(this >= 1 && this <= 65534) = 25575
+
+  /// Resource pack settings.
+  ResourcePack: String = ""
+  ResourcePackPrompt: String = ""
+  ResourcePackSha1: String = ""
+  RequireResourcePack: Boolean = false
+
+  /// Network binding settings.
+  ServerIp: String = ""
+  ServerPort: Int(this >= 1 && this <= 65534) = 25565
+
+  /// Chunk distance for updates and viewing.
+  SimulationDistance: Int(this >= 3 && this <= 32) = 10
+  ViewDistance: Int(this >= 3 && this <= 32) = 10
+
+  /// Spawning toggles.
+  SpawnAnimals: Boolean = true
+  SpawnMonsters: Boolean = true
+  SpawnNpcs: Boolean = true
+  SpawnProtection: Int = 16
+
+  /// Use native Linux transport for performance.
+  UseNativeTransport: Boolean = true
+
+  /// Enables a whitelist.
+  Whitelist: Boolean = false
+}

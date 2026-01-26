@@ -3,13 +3,9 @@ package network
 import (
 	"bufio"
 	"crypto/md5"
-	"crypto/rand"
-	"fmt"
 	"log/slog"
-	"net"
 	"time"
 
-	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 
 	"github.com/google/uuid"
@@ -37,26 +33,9 @@ func (s *Server) HandleConnection(conn Conn) {
 		_, _ = types.ReadVarInt(&conn.Reader)
 		pID, _ := types.ReadVarInt(&conn.Reader)
 		if pID == 0x00 && nextState != -1 {
-			// p.Name = s.loginReq(r, conn)
 			_, _, _ = s.StartLogin(&conn)
 			nextState = -1
 		}
-		// if pID == 0x01 && nextState == -1 {
-		// 	ss, _ := types.ReadByteArray(&conn.Reader)
-		// 	t, _ := types.ReadByteArray(&conn.Reader)
-		// 	// NOTE REMOVE LOG MSG
-		// 	ss, _ = s.Key.Decrypt(ss)
-		// 	t, _ = s.Key.Decrypt(t)
-		// 	fmt.Println(t)
-		// 	slog.Info("Encryption Response", "Shared Secret", ss, "Token", t)
-		// 	k, _ := s.Key.PubKeyToBytes()
-		// 	pd, e := api.SendHash(Name, api.AuthDigest("", ss, k))
-		// 	if e != nil {
-		// 		slog.Error("Could not authenticate with mojang")
-		// 	}
-		// 	fmt.Println(pd)
-		//
-		// }
 	}
 }
 
@@ -75,25 +54,6 @@ func handshake(r *bufio.Reader) int {
 	return -1
 }
 
-func (s *Server) loginReq(r *bufio.Reader, conn net.Conn) string {
-	username, _ := types.ReadString(r)
-	_, _ = types.ReadUUID(r)
-
-	slog.Info("New login request", "Username", username)
-	k, _ := s.Key.PubKeyToBytes()
-	t := make([]byte, 4)
-	_, _ = rand.Read(t)
-	fmt.Println(t)
-	en := packet.Encryption{
-		ServerID:   "",
-		PubKey:     k,
-		Token:      t,
-		ShouldAuth: false,
-	}
-	_, _ = en.Marshal()
-	// WritePacket(conn, int(en.ID()), resp)
-	return username
-}
 
 func NameToUUID(name string) uuid.UUID {
 	version := 3

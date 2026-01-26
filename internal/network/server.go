@@ -7,7 +7,7 @@ import (
 
 	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/encryption"
-	"codeberg.org/makila/minecraftgo/internal/protocol/packet"
+	packet "codeberg.org/makila/minecraftgo/internal/protocol/clientbound"
 )
 
 type Server struct {

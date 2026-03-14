@@ -1,5 +1,5 @@
 // Code generated from Pkl module `makila.minecraftgo.properties`. DO NOT EDIT.
-package properties
+package config
 
 // The Minecraft server configuration template.
 type ServerProperties struct {

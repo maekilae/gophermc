@@ -6,21 +6,21 @@ import (
 	"log/slog"
 	"os"
 
+	"codeberg.org/makila/minecraftgo/config"
 	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/logger"
 	"codeberg.org/makila/minecraftgo/internal/network"
-	"codeberg.org/makila/minecraftgo/properties"
 )
 
 func main() {
-	logger.Init("log.json")
+	logger.Init("log")
 	db, err := db.OpenDB("world", "player")
 	if err != nil {
 		slog.Error("Could not open db", "Error", err)
 		os.Exit(1)
 	}
 	go commands()
-	properties.LoadFromPath(context.Background(),"properties.pkl")
+	config.LoadFromPath(context.Background(), "properties.pkl")
 	s := network.NewServer("MinecraftServer", ":25565", db)
 	s.RunServer()
 

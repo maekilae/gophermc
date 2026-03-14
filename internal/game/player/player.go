@@ -1,9 +1,6 @@
 package player
 
 import (
-	"bytes"
-
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 	"github.com/google/uuid"
 )
 
@@ -19,15 +16,16 @@ type Player struct {
 	Props    Properties
 }
 
-func (p *Player) Marshal() []byte {
-	buf := new(bytes.Buffer)
+// func (p *Player) Marshal() []byte {
+// 	buf := new(bytes.Buffer)
 
-	uuid := types.WriteUUID(p.Uuid)
-	buf.Write(uuid)
-	buf.Write(types.WriteString(p.Username))
-	buf.Write(types.WriteString(p.Props.Name))
-	buf.Write(types.WriteString(p.Props.Value))
-	buf.Write(types.WriteString(p.Props.Signature))
-	return buf.Bytes()
+// 	uuid := types.WriteUUID(p.Uuid)
+// 	buf.Write(uuid)
+// 	types.StringN(p.Username).ToBytes(buf)
+// 	buf.Write(types.StringN(p.Username))
+// 	buf.Write(types.WriteString(p.Props.Name))
+// 	buf.Write(types.WriteString(p.Props.Value))
+// 	buf.Write(types.WriteString(p.Props.Signature))
+// 	return buf.Bytes()
 
-}
+// }

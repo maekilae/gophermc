@@ -1,16 +1,16 @@
-package clientbound
+package packets
 
 import (
+	"bufio"
 	"encoding/json"
-
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
+	"errors"
 )
 
-type ServerStatus struct {
+type StatusResponse struct {
 	Version            Version     `json:"version"`
 	Players            Players     `json:"players"`
 	Description        Description `json:"description"`
-	Favicon            string      `json:"favicon"`
+	Favicon            string      `json:"favicon,omitempty"` // omitempty is good here if you don't have an icon
 	EnforcesSecureChat bool        `json:"enforcesSecureChat"`
 }
 
@@ -22,7 +22,7 @@ type Version struct {
 type Players struct {
 	Max    int      `json:"max"`
 	Online int      `json:"online"`
-	Sample []Player `json:"sample"`
+	Sample []Player `json:"sample,omitempty"`
 }
 
 type Player struct {
@@ -34,13 +34,19 @@ type Description struct {
 	Text string `json:"text"`
 }
 
-func (pk ServerStatus) ID() int32 {
+func (pk StatusResponse) ID() int32 {
 	return 0x00
 }
 
-func (pk ServerStatus) Marshal() (buf []byte, err error) {
-	data, _ := json.Marshal(pk)
-	types.VarInt(len(data)).ToBytes(buf)
-	buf = append(buf,data...)
-	return
+func (pk StatusResponse) Read(r *bufio.Reader) error {
+	return errors.New("Not implemented")
+}
+
+func (pk StatusResponse) Write(w *bufio.Writer) error {
+	jsonBytes, err := json.Marshal(pk)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(jsonBytes)
+	return err
 }

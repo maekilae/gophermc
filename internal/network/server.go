@@ -7,7 +7,6 @@ import (
 
 	"codeberg.org/makila/minecraftgo/internal/db"
 	"codeberg.org/makila/minecraftgo/internal/encryption"
-	packet "codeberg.org/makila/minecraftgo/internal/protocol/clientbound"
 )
 
 type Server struct {
@@ -20,14 +19,11 @@ type Server struct {
 
 	listener *Listener
 
-	Info    packet.ServerStatus
 	Players map[string]net.Conn
 
 	mu sync.Mutex
 
 	log *slog.Logger
-
-	LoginHandler
 }
 
 func NewServer(name, port string, db *db.McDB) *Server {

@@ -2,3 +2,7 @@ log.*
 data/
 data/*
 data/**
+.direnv
+logs
+data
+.envrc

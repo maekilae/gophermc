@@ -24,7 +24,7 @@ func (t Boolean) Write(writer *bufio.Writer) error {
 	return writer.WriteByte(0x00)
 }
 
-// --- Bytes ---
+// Bytes
 func (t *SignedByte) Read(reader *bufio.Reader) error {
 	b, err := reader.ReadByte()
 	*t = SignedByte(b)
@@ -45,7 +45,7 @@ func (t UnsignedByte) Write(writer *bufio.Writer) error {
 	return writer.WriteByte(byte(t))
 }
 
-// --- Shorts (16-bit) ---
+// Shorts (16-bit)
 func (t *SignedShort) Read(reader *bufio.Reader) error {
 	var buf [2]byte
 	if _, err := io.ReadFull(reader, buf[:]); err != nil {
@@ -78,7 +78,7 @@ func (t UnsignedShort) Write(writer *bufio.Writer) error {
 	return err
 }
 
-// --- Ints & Longs (Fixed length) ---
+// Ints & Longs (Fixed length)
 func (t *SignedInt) Read(reader *bufio.Reader) error {
 	var buf [4]byte
 	if _, err := io.ReadFull(reader, buf[:]); err != nil {
@@ -111,7 +111,7 @@ func (t SignedLong) Write(writer *bufio.Writer) error {
 	return err
 }
 
-// --- VarInt & VarLong ---
+// VarInt n VarLong
 func (t *VarInt) Read(reader *bufio.Reader) error {
 	var value int32
 	var position uint
@@ -182,7 +182,7 @@ func (t VarLong) Write(writer *bufio.Writer) error {
 	}
 }
 
-// --- Strings & Namespaces ---
+// Strings n Namespaces
 func (t *StringN) Read(reader *bufio.Reader) error {
 	var length VarInt
 	if err := length.Read(reader); err != nil {
@@ -222,7 +222,7 @@ func (t Namespace) Write(writer *bufio.Writer) error {
 	return StringN(t).Write(writer)
 }
 
-// --- Position (Sent as a 64-bit integer) ---
+// Position (Sent as a 64-bit integer)
 func (t *PackedPosition) Read(reader *bufio.Reader) error {
 	var val SignedLong
 	err := val.Read(reader)
@@ -234,7 +234,7 @@ func (t PackedPosition) Write(writer *bufio.Writer) error {
 	return SignedLong(t).Write(writer)
 }
 
-// --- Angle (1 byte representing 1/256 of a full turn) ---
+// Angle (1 byte representing 1/256 of a full turn)
 func (t *Angle) Read(reader *bufio.Reader) error {
 	b, err := reader.ReadByte()
 	*t = Angle(b)
@@ -245,7 +245,7 @@ func (t Angle) Write(writer *bufio.Writer) error {
 	return writer.WriteByte(byte(t))
 }
 
-// --- UUID (16 bytes) ---
+// UUID
 func (t *UUID) Read(reader *bufio.Reader) error {
 	var buf [16]byte
 	if _, err := io.ReadFull(reader, buf[:]); err != nil {
@@ -260,7 +260,7 @@ func (t UUID) Write(writer *bufio.Writer) error {
 	return err
 }
 
-// --- ByteArray & BitSets ---
+// ByteArray n BitSets
 func (t *ByteArray) Read(reader *bufio.Reader) error {
 	var length VarInt
 	if err := length.Read(reader); err != nil {
@@ -296,4 +296,106 @@ func (t *FixedBitSet) Read(reader *bufio.Reader) error {
 
 func (t FixedBitSet) Write(writer *bufio.Writer) error {
 	return ByteArray(t).Write(writer)
+}
+
+// GameProfile
+func (t *GameProfileProperty) Read(reader *bufio.Reader) error {
+	if err := t.Name.Read(reader); err != nil {
+		return err
+	}
+	if err := t.Value.Read(reader); err != nil {
+		return err
+	}
+
+	// Check if the signature exists
+	if err := t.IsSigned.Read(reader); err != nil {
+		return err
+	}
+
+	// Only read the signature if the boolean was true
+	if t.IsSigned {
+		if err := t.Signature.Read(reader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t GameProfileProperty) Write(writer *bufio.Writer) error {
+	if err := t.Name.Write(writer); err != nil {
+		return err
+	}
+	if err := t.Value.Write(writer); err != nil {
+		return err
+	}
+	if err := t.IsSigned.Write(writer); err != nil {
+		return err
+	}
+
+	// Only write the signature if the boolean is true
+	if t.IsSigned {
+		if err := t.Signature.Write(writer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// --- GameProfile ---
+
+func (t *GameProfile) Read(reader *bufio.Reader) error {
+	// 1. Read UUID
+	if err := t.UUID.Read(reader); err != nil {
+		return err
+	}
+
+	// 2. Read Username
+	if err := t.Username.Read(reader); err != nil {
+		return err
+	}
+
+	// 3. Read the Array Length Prefix
+	var propCount VarInt
+	if err := propCount.Read(reader); err != nil {
+		return err
+	}
+
+	// 4. Initialize the slice and read each property
+	t.Properties = make([]GameProfileProperty, propCount)
+	for i := 0; i < int(propCount); i++ {
+		if err := t.Properties[i].Read(reader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t GameProfile) Write(writer *bufio.Writer) error {
+	// 1. Write UUID
+	if err := t.UUID.Write(writer); err != nil {
+		return err
+	}
+
+	// 2. Write Username
+	if err := t.Username.Write(writer); err != nil {
+		return err
+	}
+
+	// 3. Write the Array Length Prefix
+	propCount := VarInt(len(t.Properties))
+	if err := propCount.Write(writer); err != nil {
+		return err
+	}
+
+	// 4. Write each property
+	for _, prop := range t.Properties {
+		if err := prop.Write(writer); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -137,7 +137,7 @@ func Init(logFilePrefix string) error {
 	}
 
 	// Use the Custom ANSI Handler for stdout
-	h1 := &ColorConsoleHandler{opts: slog.HandlerOptions{Level: slog.LevelInfo}}
+	h1 := &ColorConsoleHandler{opts: slog.HandlerOptions{Level: slog.LevelDebug}}
 
 	// Keep the standard JSON handler for file output
 	h2 := slog.NewJSONHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true})

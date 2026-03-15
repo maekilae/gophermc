@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -9,6 +10,12 @@ import (
 type Keys struct {
 	key *rsa.PrivateKey
 	Key rsa.PublicKey
+}
+type cfb8 struct {
+	b         cipher.Block
+	blockSize int
+	iv        []byte
+	decrypt   bool
 }
 
 func GenerateRSA() (Keys, error) {
@@ -22,7 +29,6 @@ func GenerateRSA() (Keys, error) {
 }
 
 func (k *Keys) PubKeyToBytes() ([]byte, error) {
-	// MarshalPKIXPublicKey returns the DER-encoded public key
 	pubBytes, err := x509.MarshalPKIXPublicKey(&k.Key)
 	if err != nil {
 		return nil, err
@@ -35,4 +41,32 @@ func (k *Keys) Decrypt(data []byte) ([]byte, error) {
 
 func ParseKeyStream(data []byte) (any, error) {
 	return x509.ParsePKIXPublicKey(data)
+}
+
+func NewCFB8Stream(block cipher.Block, iv []byte, decrypt bool) cipher.Stream {
+	ivCopy := make([]byte, len(iv))
+	copy(ivCopy, iv)
+	return &cfb8{
+		b:         block,
+		blockSize: block.BlockSize(),
+		iv:        ivCopy,
+		decrypt:   decrypt,
+	}
+}
+
+func (x *cfb8) XORKeyStream(dst, src []byte) {
+	for i := range src {
+		val := make([]byte, x.blockSize)
+		x.b.Encrypt(val, x.iv)
+
+		c := src[i] ^ val[0]
+
+		copy(x.iv, x.iv[1:])
+		if x.decrypt {
+			x.iv[x.blockSize-1] = src[i]
+		} else {
+			x.iv[x.blockSize-1] = c
+		}
+		dst[i] = c
+	}
 }

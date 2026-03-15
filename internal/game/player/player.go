@@ -1,19 +1,19 @@
 package player
 
 import (
-	"github.com/google/uuid"
+	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 type Properties struct {
-	Name      string
-	Value     string
-	Signature string
+	Name      types.StringN
+	Value     types.StringN
+	Signature types.StringN
 }
 
 type Player struct {
-	Username string
-	Uuid     uuid.UUID
-	Props    Properties
+	Username   types.StringN
+	Uuid       types.UUID
+	Properties Properties
 }
 
 // func (p *Player) Marshal() []byte {

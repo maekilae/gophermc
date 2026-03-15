@@ -3,10 +3,16 @@ package network
 import (
 	"bufio"
 	"bytes"
+	"compress/zlib"
+	"crypto/aes"
+	"crypto/cipher"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
+	"codeberg.org/makila/minecraftgo/internal/encryption"
+	"codeberg.org/makila/minecraftgo/internal/game/player"
 	"codeberg.org/makila/minecraftgo/internal/protocol/packets"
 	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
@@ -17,27 +23,6 @@ var (
 	bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
 )
 
-// ListenMC listen as TCP but Accept a mc Conn
-func ListenMC(addr string) (*Listener, error) {
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return &Listener{l}, nil
-}
-
-// Accept a minecraft Conn
-func (l Listener) Accept() (Handler, error) {
-	conn, err := l.Listener.Accept()
-	return Handler{
-		Socket:       conn,
-		Reader:       bufio.NewReader(conn),
-		Writer:       bufio.NewWriter(conn),
-		isCompressed: false,
-		threshold:    32,
-	}, err
-}
-
 type Handler struct {
 	Socket       net.Conn
 	Reader       *bufio.Reader
@@ -45,6 +30,12 @@ type Handler struct {
 	isCompressed bool
 	threshold    int32
 	State        int
+	IPC          chan IPC
+	serverKey    *encryption.Keys
+	sharedSecret []byte
+	verifyToken  []byte
+	isEncrypted  bool
+	Player       player.Player
 }
 
 func (h *Handler) Close() error {
@@ -54,73 +45,157 @@ func (h *Handler) Close() error {
 	return h.Socket.Close()
 }
 func (h *Handler) WritePacket(p packets.Packet) error {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bufPool.Put(buf)
+	payloadBuf := bufPool.Get().(*bytes.Buffer)
+	payloadBuf.Reset()
+	defer bufPool.Put(payloadBuf)
 
-	tempWriter := bufio.NewWriter(buf)
-
-	// Write the Packet ID as a VarInt
+	tmpWriter := bufio.NewWriter(payloadBuf)
 	packetID := types.VarInt(p.ID())
-	if err := packetID.Write(tempWriter); err != nil {
+	if err := packetID.Write(tmpWriter); err != nil {
+		return err
+	}
+	if err := p.Write(tmpWriter); err != nil {
+		return err
+	}
+	tmpWriter.Flush()
+
+	finalBuf := bufPool.Get().(*bytes.Buffer)
+	finalBuf.Reset()
+	defer bufPool.Put(finalBuf)
+
+	finalWriter := bufio.NewWriter(finalBuf)
+
+	if h.isCompressed {
+		uncompressedSize := payloadBuf.Len()
+
+		if int32(uncompressedSize) >= h.threshold {
+			dataLength := types.VarInt(uncompressedSize)
+			if err := dataLength.Write(finalWriter); err != nil {
+				return err
+			}
+			finalWriter.Flush()
+
+			zWriter := zlib.NewWriter(finalBuf)
+			zWriter.Write(payloadBuf.Bytes())
+			zWriter.Close()
+		} else {
+			dataLength := types.VarInt(0)
+			if err := dataLength.Write(finalWriter); err != nil {
+				return err
+			}
+			finalWriter.Flush()
+			finalBuf.Write(payloadBuf.Bytes())
+		}
+	} else {
+		finalBuf.Write(payloadBuf.Bytes())
+	}
+
+	totalLength := types.VarInt(finalBuf.Len())
+	if err := totalLength.Write(h.Writer); err != nil {
+		return err
+	}
+	if _, err := h.Writer.Write(finalBuf.Bytes()); err != nil {
 		return err
 	}
 
-	// Write the Packet Data
-	if err := p.Write(tempWriter); err != nil {
-		return err
-	}
-	tempWriter.Flush()
-	lengthPrefix := types.VarInt(buf.Len())
-	if err := lengthPrefix.Write(h.Writer); err != nil {
-		return err
-	}
-
-	// Write the payload (ID + Data) to the socket
-	if _, err := h.Writer.Write(buf.Bytes()); err != nil {
-		return err
-	}
-
-	// 7. Flush the TCP stream so the client gets it
 	return h.Writer.Flush()
 }
 
-// ReadNextPacket reads the framing, identifies the packet, and populates it.
 func (h *Handler) ReadNextPacket() (packets.Packet, error) {
-	// 1. Read the Total Packet Length
-	var length types.VarInt
-	if err := length.Read(h.Reader); err != nil {
-		return nil, err // This usually means the client disconnected
+	var totalLength types.VarInt
+	if err := totalLength.Read(h.Reader); err != nil {
+		return nil, err
 	}
 
-	// 2. Read the Packet ID
+	packetBytes := make([]byte, totalLength)
+	if _, err := io.ReadFull(h.Reader, packetBytes); err != nil {
+		return nil, fmt.Errorf("failed to read full packet: %w", err)
+	}
+	dataReader := bufio.NewReader(bytes.NewReader(packetBytes))
+
+	if h.isCompressed {
+		var dataLength types.VarInt
+		if err := dataLength.Read(dataReader); err != nil {
+			return nil, err
+		}
+
+		if dataLength != 0 {
+			zReader, err := zlib.NewReader(dataReader)
+			if err != nil {
+				return nil, fmt.Errorf("zlib error: %w", err)
+			}
+			defer zReader.Close()
+
+			dataReader = bufio.NewReader(zReader)
+		}
+	}
+
 	var packetID types.VarInt
-	if err := packetID.Read(h.Reader); err != nil {
+	if err := packetID.Read(dataReader); err != nil {
 		return nil, fmt.Errorf("failed to read packet ID: %w", err)
 	}
-
-	// 3. Look up the packet constructor in our registry based on current State
 	stateMap, stateExists := ServerBoundRegistry[h.State]
 	if !stateExists {
 		return nil, fmt.Errorf("unknown connection state: %d", h.State)
 	}
-
 	constructor, packetExists := stateMap[int32(packetID)]
 	if !packetExists {
-		// If we don't know the packet, we must discard the remaining bytes
-		// of the payload so it doesn't corrupt the next packet in the stream!
-		// payloadLength := int(length) - len(packetID.ToBytes(nil))
-		// h.Reader.Discard(payloadLength)
 		return nil, fmt.Errorf("unhandled packet ID 0x%02X in state %d", packetID, h.State)
 	}
-
-	// 4. Instantiate the empty packet
 	packet := constructor()
 
-	// 5. Populate the packet using the interface method!
-	if err := packet.Read(h.Reader); err != nil {
+	if err := packet.Read(dataReader); err != nil {
 		return nil, fmt.Errorf("failed to decode packet 0x%02X: %w", packetID, err)
 	}
 
 	return packet, nil
+}
+
+type cipherReader struct {
+	conn   net.Conn
+	stream cipher.Stream
+}
+
+func (c *cipherReader) Read(p []byte) (n int, err error) {
+	n, err = c.conn.Read(p)
+	if n > 0 {
+		c.stream.XORKeyStream(p[:n], p[:n])
+	}
+	return n, err
+}
+
+type cipherWriter struct {
+	conn   net.Conn
+	stream cipher.Stream
+}
+
+func (c *cipherWriter) Write(p []byte) (n int, err error) {
+	enc := make([]byte, len(p))
+	c.stream.XORKeyStream(enc, p)
+	return c.conn.Write(enc)
+}
+
+func (h *Handler) EnableEncryption(sharedSecret []byte) error {
+	block, err := aes.NewCipher(sharedSecret)
+	if err != nil {
+		return err
+	}
+
+	encStream := encryption.NewCFB8Stream(block, sharedSecret, false)
+	decStream := encryption.NewCFB8Stream(block, sharedSecret, true)
+
+	if h.Writer != nil {
+		h.Writer.Flush()
+	}
+
+	cReader := &cipherReader{conn: h.Socket, stream: decStream}
+	cWriter := &cipherWriter{conn: h.Socket, stream: encStream}
+
+	h.Reader = bufio.NewReader(cReader)
+	h.Writer = bufio.NewWriter(cWriter)
+
+	h.sharedSecret = sharedSecret
+	h.isEncrypted = true
+
+	return nil
 }

@@ -76,3 +76,16 @@ type Position struct {
 	Y int16
 	Z int32
 }
+
+type GameProfileProperty struct {
+	Name      StringN
+	Value     StringN
+	IsSigned  Boolean
+	Signature StringN
+}
+
+type GameProfile struct {
+	UUID       UUID
+	Username   StringN
+	Properties []GameProfileProperty
+}

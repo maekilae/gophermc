@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+
+	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 )
 
 type StatusResponse struct {
@@ -44,6 +46,11 @@ func (pk StatusResponse) Read(r *bufio.Reader) error {
 
 func (pk StatusResponse) Write(w *bufio.Writer) error {
 	jsonBytes, err := json.Marshal(pk)
+	if err != nil {
+		return err
+	}
+	length := types.VarInt(len(jsonBytes))
+	err = length.Write(w)
 	if err != nil {
 		return err
 	}

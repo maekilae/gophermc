@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 
-	"codeberg.org/makila/minecraftgo/internal/db"
-	"codeberg.org/makila/minecraftgo/internal/logger"
-	"codeberg.org/makila/minecraftgo/internal/network"
+	"github.com/maekilae/gophermc/config"
+	db "github.com/maekilae/gophermc/internal/database"
+	"github.com/maekilae/gophermc/internal/logger"
+	"github.com/maekilae/gophermc/internal/server"
 )
 
 func main() {
@@ -18,8 +20,12 @@ func main() {
 		os.Exit(1)
 	}
 	go commands()
-	// config.LoadFromPath(context.Background(), "properties.pkl")
-	s := network.NewServer("MinecraftServer", ":25565", db)
+	c, err := config.LoadFromPath(context.Background(), "properties.pkl")
+	if err != nil {
+		slog.Error("Could not load config", "Error", err)
+		os.Exit(1)
+	}
+	s := server.NewServer("MinecraftServer", ":25565", db, c.Version, c.Properties)
 	s.RunServer()
 
 }

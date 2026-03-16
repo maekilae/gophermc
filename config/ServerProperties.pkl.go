@@ -1,4 +1,4 @@
-// Code generated from Pkl module `makila.minecraftgo.properties`. DO NOT EDIT.
+// Code generated from Pkl module `maekilae.gophermc.config`. DO NOT EDIT.
 package config
 
 // The Minecraft server configuration template.

@@ -1,7 +1,7 @@
 package player
 
 import (
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
+	"github.com/maekilae/gophermc/internal/protocol/types"
 )
 
 type Properties struct {

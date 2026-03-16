@@ -1,10 +1,10 @@
-module codeberg.org/makila/minecraftgo
+module github.com/maekilae/gophermc
 
 go 1.25.5
 
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
-	github.com/apple/pkl-go v0.12.1 // indirect
+	github.com/apple/pkl-go v0.13.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect

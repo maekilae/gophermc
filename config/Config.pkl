@@ -1,16 +1,15 @@
-@go.Package { name = "codeberg.org/makila/minecraftgo/properties" }
-module makila.minecraftgo.properties
+@go.Package { name = "github.com/maekilae/gophermc" }
+module maekilae.gophermc.config
 
 import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.12.1#/go.pkl"
 
-class Version {
-	name: String
-	protocol: UInt16
+class ServerVersion {
+  name: String
+  protocol: UInt16
 }
 
 /// The Minecraft server configuration template.
 class ServerProperties {
-
   /// Allows users to use flight on the server while in Survival mode.
   AllowFlight: Boolean = false
 
@@ -147,3 +146,5 @@ class ServerProperties {
   /// Enables a whitelist.
   Whitelist: Boolean = false
 }
+properties: ServerProperties
+version: ServerVersion

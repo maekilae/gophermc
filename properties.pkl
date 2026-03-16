@@ -1,1 +1,6 @@
+amends "config/Config.pkl"
 
+version {
+  name = "GopherMC"
+  protocol = 774
+}

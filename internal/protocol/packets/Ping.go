@@ -3,7 +3,7 @@ package packets
 import (
 	"bufio"
 
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
+	"github.com/maekilae/gophermc/internal/protocol/types"
 )
 
 type Ping struct {

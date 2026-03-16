@@ -1,4 +1,4 @@
-package network
+package server
 
 import (
 	"bufio"
@@ -11,10 +11,11 @@ import (
 	"net"
 	"sync"
 
-	"codeberg.org/makila/minecraftgo/internal/encryption"
-	"codeberg.org/makila/minecraftgo/internal/game/player"
-	"codeberg.org/makila/minecraftgo/internal/protocol/packets"
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
+	"github.com/maekilae/gophermc/internal/encryption"
+	"github.com/maekilae/gophermc/internal/game/player"
+	"github.com/maekilae/gophermc/internal/protocol/packets"
+	"github.com/maekilae/gophermc/internal/protocol/types"
+	"github.com/maekilae/gophermc/internal/server/ipc"
 )
 
 type Listener struct{ net.Listener }
@@ -30,7 +31,7 @@ type Handler struct {
 	isCompressed bool
 	threshold    int32
 	State        int
-	IPC          chan IPC
+	IPC          chan ipc.IPC
 	serverKey    *encryption.Keys
 	sharedSecret []byte
 	verifyToken  []byte

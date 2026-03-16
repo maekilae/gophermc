@@ -1,10 +1,10 @@
-// Code generated from Pkl module `makila.minecraftgo.properties`. DO NOT EDIT.
+// Code generated from Pkl module `maekilae.gophermc.config`. DO NOT EDIT.
 package config
 
 import "github.com/apple/pkl-go/pkl"
 
 func init() {
-	pkl.RegisterStrictMapping("makila.minecraftgo.properties", Properties{})
-	pkl.RegisterStrictMapping("makila.minecraftgo.properties#Version", Version{})
-	pkl.RegisterStrictMapping("makila.minecraftgo.properties#ServerProperties", ServerProperties{})
+	pkl.RegisterStrictMapping("maekilae.gophermc.config", Config{})
+	pkl.RegisterStrictMapping("maekilae.gophermc.config#ServerProperties", ServerProperties{})
+	pkl.RegisterStrictMapping("maekilae.gophermc.config#ServerVersion", ServerVersion{})
 }

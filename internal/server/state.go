@@ -1,7 +1,7 @@
-package network
+package server
 
 import (
-	"codeberg.org/makila/minecraftgo/internal/protocol/packets"
+	"github.com/maekilae/gophermc/internal/protocol/packets"
 )
 
 // Define our connection states

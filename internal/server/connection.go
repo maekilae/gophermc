@@ -1,4 +1,4 @@
-package network
+package server
 
 import (
 	"bytes"
@@ -6,10 +6,10 @@ import (
 	"errors"
 	"log/slog"
 
-	"codeberg.org/makila/minecraftgo/internal/api"
-	"codeberg.org/makila/minecraftgo/internal/protocol/packets"
-	"codeberg.org/makila/minecraftgo/internal/protocol/types"
 	"github.com/google/uuid"
+	"github.com/maekilae/gophermc/internal/api"
+	"github.com/maekilae/gophermc/internal/protocol/packets"
+	"github.com/maekilae/gophermc/internal/protocol/types"
 )
 
 func (s *Server) HandleConnection(h Handler) {

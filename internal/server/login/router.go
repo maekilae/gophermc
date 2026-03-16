@@ -3,12 +3,20 @@ package login
 import (
 	"log/slog"
 
+	"github.com/maekilae/gophermc/internal/encryption"
+	"github.com/maekilae/gophermc/internal/game/player"
 	"github.com/maekilae/gophermc/internal/protocol/packets"
 )
 
 type Session interface {
 	WritePacket(p packets.Packet) error
-	// You can add more later: Disconnect(reason string), GetUsername() string, etc.
+	Disconnect(reason string) error
+	GetUsername() string
+	GetServerKey() *encryption.Keys
+	GetToken() ([]byte, error)
+	GetPlayer() player.PlayerData
+	UpdatePlayer(player.PlayerData)
+	EnableEncryption(sharedSecret []byte) error
 }
 
 type HandlerFunc func(session Session, p packets.Packet) error

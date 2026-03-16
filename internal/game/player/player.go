@@ -1,19 +1,15 @@
 package player
 
-import (
-	"github.com/maekilae/gophermc/internal/protocol/types"
-)
-
-type Properties struct {
-	Name      types.StringN
-	Value     types.StringN
-	Signature types.StringN
+type PlayerData struct {
+	UUID       string     `json:"id"`
+	Username   string     `json:"name"`
+	Properties []Property `json:"properties"`
 }
 
-type Player struct {
-	Username   types.StringN
-	Uuid       types.UUID
-	Properties Properties
+type Property struct {
+	Name      string `json:"name"`
+	Value     string `json:"value"`
+	Signature string `json:"signature"`
 }
 
 // func (p *Player) Marshal() []byte {

@@ -27,6 +27,8 @@ type Server struct {
 	Properties config.ServerProperties
 }
 
+type Listener struct{ net.Listener }
+
 // ListenMC listen as TCP but Accept a mc Conn
 func InitListener(addr string) (*Listener, error) {
 	l, err := net.Listen("tcp", addr)
@@ -46,6 +48,8 @@ func (s *Server) Accept() (*Handler, error) {
 		Writer:       bufio.NewWriter(conn),
 		isCompressed: false,
 		threshold:    32,
+		requestChan:  s.IPCRequest,
+		replyChan:    make(chan ipc.IPC),
 		serverKey:    &s.key,
 		isEncrypted:  false,
 	}, err
@@ -71,21 +75,27 @@ func NewServer(name, port string, db *db.McDB, version config.ServerVersion, pro
 }
 
 func (s *Server) ipcHandler() {
-	for {
-		select {
-		case req := <-s.IPCRequest:
-			switch req := req.(type) {
-			case ipc.ServerStatus:
-				slog.Info("Server Status Requested")
-				req.Name = s.Name
-				req.Protocol = int(s.Version.Protocol)
-				req.MaxPlayers = s.Properties.MaxPlayers
-				req.OnlinePlayers = len(s.Players)
-				req.Description = s.Properties.Motd
-				req.Favicon = ""
-				req.EnforcesSecureChat = s.Properties.EnforceSecureProfile
-				s.IPCRequest <- req
-			}
+	for req := range s.IPCRequest {
+		switch req := req.(type) {
+
+		case ipc.ServerStatus:
+			slog.Info("Server Status Requested")
+			// Populate the struct
+			req.Name = s.Name
+			req.Protocol = int(s.Version.Protocol)
+			req.MaxPlayers = s.Properties.MaxPlayers
+			req.OnlinePlayers = len(s.Players)
+			req.Description = s.Properties.Motd
+			req.Favicon = ""
+			req.EnforcesSecureChat = s.Properties.EnforceSecureProfile
+
+			// Send it back exclusively to the goroutine that asked for it
+			req.Reply <- req
+
+		case ipc.Blacklist:
+			slog.Info("Blacklist Requested")
+			// Do logic...
+			// req.Reply <- req
 		}
 	}
 }
@@ -94,6 +104,7 @@ func (s *Server) RunServer() {
 	slog.Info("Starting Server", slog.String("port", s.port))
 	s.IPCRequest = make(chan ipc.IPC, 40)
 	defer s.listener.Close()
+	go s.ipcHandler()
 	for {
 		c, e := s.Accept()
 		if e == nil {

@@ -13,7 +13,7 @@ type LoginStart struct {
 }
 
 func (pk *LoginStart) ID() int32 {
-	return 0x01
+	return 0x00
 }
 
 func (pk *LoginStart) Read(w *bufio.Reader) error {

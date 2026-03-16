@@ -1,4 +1,4 @@
-package api
+package auth
 
 import (
 	"crypto/sha1"
@@ -8,37 +8,40 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/maekilae/gophermc/internal/game/player"
 )
 
-type PlayerData struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	Properties []Property `json:"properties"`
-}
-
-type Property struct {
-	Name      string `json:"name"`
-	Value     string `json:"value"`
-	Signature string `json:"signature"`
-}
-
-func SendHash(u string, h string) (PlayerData, error) {
-	var content PlayerData
+func SendHash(u string, h string) (player.PlayerData, error) {
+	var content player.PlayerData
 	params := url.Values{}
 	params.Add("serverId", h)
 	params.Add("username", u)
+
 	au := "https://sessionserver.mojang.com/session/minecraft/hasJoined?" + params.Encode()
-	fmt.Println(au)
+	// fmt.Println("Calling Mojang:", au)
+
 	resp, err := http.Get(au)
 	if err != nil {
 		return content, err
 	}
 	defer resp.Body.Close()
+
+	// CRITICAL FIX: Mojang returns 204 No Content if the hash doesn't match!
+	if resp.StatusCode == http.StatusNoContent {
+		return content, fmt.Errorf("mojang rejected login: player %s not verified", u)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return content, fmt.Errorf("mojang api returned unexpected status: %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return content, err
 	}
-	json.Unmarshal(body, &content)
+
+	// CRITICAL FIX: Actually capture and return the JSON unmarshal error
+	err = json.Unmarshal(body, &content)
 	return content, err
 }
 

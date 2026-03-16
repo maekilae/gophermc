@@ -83,7 +83,7 @@ class ServerProperties {
   MaxChainedNeighborUpdates: Int = 1000000
 
   /// Maximum simultaneous players.
-  MaxPlayers: Int(this >= 0) = 20
+  MaxPlayers: Int(this >= 0) = 100
 
   /// Watchdog timeout in milliseconds.
   MaxTickTime: Int = 60000

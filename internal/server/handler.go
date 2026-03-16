@@ -6,8 +6,11 @@ import (
 	"compress/zlib"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"sync"
 
@@ -17,8 +20,6 @@ import (
 	"github.com/maekilae/gophermc/internal/protocol/types"
 	"github.com/maekilae/gophermc/internal/server/ipc"
 )
-
-type Listener struct{ net.Listener }
 
 var (
 	bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
@@ -31,12 +32,13 @@ type Handler struct {
 	isCompressed bool
 	threshold    int32
 	State        int
-	IPC          chan ipc.IPC
+	requestChan  chan ipc.IPC
+	replyChan    chan ipc.IPC
 	serverKey    *encryption.Keys
 	sharedSecret []byte
 	verifyToken  []byte
 	isEncrypted  bool
-	Player       player.Player
+	Player       player.PlayerData
 }
 
 func (h *Handler) Close() error {
@@ -199,4 +201,41 @@ func (h *Handler) EnableEncryption(sharedSecret []byte) error {
 	h.isEncrypted = true
 
 	return nil
+}
+
+func (h *Handler) Disconnect(reason string) error {
+	slog.Info("User disconnected", "reason", reason)
+	return errors.New("User disconnected")
+}
+
+func (h *Handler) GetUsername() string {
+	return string(h.Player.Username)
+}
+
+func (h *Handler) GetServerKey() *encryption.Keys {
+	return h.serverKey
+}
+
+func (h *Handler) GetToken() ([]byte, error) {
+	if h.verifyToken == nil {
+		vt := make([]byte, 16)
+		_, err := rand.Read(vt)
+		if err != nil {
+			return nil, err
+		}
+		h.verifyToken = vt
+	}
+	return h.verifyToken, nil
+}
+
+func (h *Handler) GetPlayer() player.PlayerData {
+	return h.Player
+}
+
+func (h *Handler) SetSharedSecret(ss []byte) {
+	h.sharedSecret = ss
+}
+
+func (h *Handler) UpdatePlayer(p player.PlayerData) {
+	h.Player = p
 }

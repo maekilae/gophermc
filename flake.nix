@@ -56,6 +56,7 @@
               tailwindcss_4
               tailwindcss-language-server
               air
+              pkl
             ];
           };
         }

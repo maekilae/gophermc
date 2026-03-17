@@ -9,6 +9,7 @@ import (
 	"github.com/maekilae/gophermc/config"
 	db "github.com/maekilae/gophermc/internal/database"
 	"github.com/maekilae/gophermc/internal/encryption"
+	"github.com/maekilae/gophermc/internal/server/handler"
 	"github.com/maekilae/gophermc/internal/server/ipc"
 )
 
@@ -39,19 +40,17 @@ func InitListener(addr string) (*Listener, error) {
 }
 
 // Accept a minecraft Conn
-func (s *Server) Accept() (*Handler, error) {
+func (s *Server) Accept() (*handler.Handler, error) {
 	conn, err := s.listener.Accept()
 
-	return &Handler{
-		Socket:       conn,
-		Reader:       bufio.NewReader(conn),
-		Writer:       bufio.NewWriter(conn),
-		isCompressed: false,
-		threshold:    32,
-		requestChan:  s.IPCRequest,
-		replyChan:    make(chan ipc.IPC),
-		serverKey:    &s.key,
-		isEncrypted:  false,
+	return &handler.Handler{
+		Socket:      conn,
+		Reader:      bufio.NewReader(conn),
+		Writer:      bufio.NewWriter(conn),
+		Threshold:   32,
+		RequestChan: s.IPCRequest,
+		ReplyChan:   make(chan ipc.IPC),
+		ServerKey:   &s.key,
 	}, err
 }
 
@@ -78,7 +77,7 @@ func (s *Server) ipcHandler() {
 	for req := range s.IPCRequest {
 		switch req := req.(type) {
 
-		case ipc.ServerStatus:
+		case *ipc.ServerStatus:
 			slog.Info("Server Status Requested")
 			// Populate the struct
 			req.Name = s.Name
@@ -92,7 +91,7 @@ func (s *Server) ipcHandler() {
 			// Send it back exclusively to the goroutine that asked for it
 			req.Reply <- req
 
-		case ipc.Blacklist:
+		case *ipc.Blacklist:
 			slog.Info("Blacklist Requested")
 			// Do logic...
 			// req.Reply <- req
@@ -106,9 +105,9 @@ func (s *Server) RunServer() {
 	defer s.listener.Close()
 	go s.ipcHandler()
 	for {
-		c, e := s.Accept()
+		h, e := s.Accept()
 		if e == nil {
-			go s.HandleConnection(*c)
+			go h.HandleConnection()
 		}
 	}
 }

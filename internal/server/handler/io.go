@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"compress/zlib"
-	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 
-	"github.com/maekilae/gophermc/internal/encryption"
 	"github.com/maekilae/gophermc/internal/protocol/packets"
 	"github.com/maekilae/gophermc/internal/protocol/types"
 )
@@ -44,7 +42,7 @@ func (h *Handler) WritePacket(p packets.Packet) error {
 	if h.isCompressed {
 		uncompressedSize := payloadBuf.Len()
 
-		if int32(uncompressedSize) >= h.threshold {
+		if int32(uncompressedSize) >= h.Threshold {
 			dataLength := types.VarInt(uncompressedSize)
 			if err := dataLength.Write(finalWriter); err != nil {
 				return err
@@ -149,29 +147,4 @@ func (c *cipherWriter) Write(p []byte) (n int, err error) {
 	enc := make([]byte, len(p))
 	c.stream.XORKeyStream(enc, p)
 	return c.conn.Write(enc)
-}
-
-func (h *Handler) EnableEncryption(sharedSecret []byte) error {
-	block, err := aes.NewCipher(sharedSecret)
-	if err != nil {
-		return err
-	}
-
-	encStream := encryption.NewCFB8Stream(block, sharedSecret, false)
-	decStream := encryption.NewCFB8Stream(block, sharedSecret, true)
-
-	if h.Writer != nil {
-		h.Writer.Flush()
-	}
-
-	cReader := &cipherReader{conn: h.Socket, stream: decStream}
-	cWriter := &cipherWriter{conn: h.Socket, stream: encStream}
-
-	h.Reader = bufio.NewReader(cReader)
-	h.Writer = bufio.NewWriter(cWriter)
-
-	h.sharedSecret = sharedSecret
-	h.isEncrypted = true
-
-	return nil
 }

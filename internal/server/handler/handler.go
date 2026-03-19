@@ -32,6 +32,7 @@ type Handler struct {
 	verifyToken  []byte
 	isEncrypted  bool
 	Player       player.PlayerData
+	disconnected bool
 }
 
 func (h *Handler) Close() error {
@@ -45,9 +46,13 @@ func (h *Handler) HandleConnection() {
 	defer h.Close()
 	h.isEncrypted = false
 	h.isCompressed = false
+	h.disconnected = false
 
 	// nextState := handshake(&h.Reader)
 	for {
+		if h.disconnected {
+			return
+		}
 		switch h.State {
 		case StateHandshake:
 			if h.Handshake() != nil {
@@ -58,9 +63,10 @@ func (h *Handler) HandleConnection() {
 				return
 			}
 		case StateLogin:
-			if h.Login() != nil {
+			if err := h.Login(); err != nil {
 				return
 			}
+			h.State = StateConfig
 		}
 	}
 }
@@ -86,17 +92,19 @@ func (h *Handler) Status() error {
 		if err != nil {
 			return err
 		}
-		switch pk := pk.(type) {
-		case *packets.StatusRequest:
-			status.Route(h, pk)
+		// switch pk := pk.(type) {
+		// case *packets.StatusRequest:
+		// 	status.Route(h, pk)
 
-		case *packets.Ping:
-			status.Route(h, pk)
+		// case *packets.Ping:
+		// 	status.Route(h, pk)
 
-		default:
-			slog.Error("Unknown packet in Status state", "Packet", pk)
-			return errors.New("Unknown packet in Status state")
-		}
+		// default:
+		// 	slog.Error("Unknown packet in Status state", "Packet", pk)
+		// 	return errors.New("Unknown packet in Status state")
+		// }
+		status.Route(h, pk)
+		return nil
 	}
 }
 
@@ -175,6 +183,8 @@ func (h *Handler) EnableEncryption(sharedSecret []byte) error {
 
 func (h *Handler) Disconnect(reason string) error {
 	slog.Info("User disconnected", "reason", reason)
+	pk := packets.LoginDisconnect{Reason: types.StringN(reason)}
+	h.WritePacket(&pk)
 	return errors.New("User disconnected")
 }
 

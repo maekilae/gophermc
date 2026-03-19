@@ -6,7 +6,8 @@ const (
 	StateHandshake = 0
 	StateStatus    = 1
 	StateLogin     = 2
-	StatePlay      = 3
+	StateConfig    = 3
+	StatePlay      = 4
 )
 
 // ServerBoundRegistry holds the incoming packets we expect from the client
@@ -23,5 +24,8 @@ var ServerBoundRegistry = map[int]map[int32]func() packets.Packet{
 		0x01: func() packets.Packet { return &packets.EncryptionResponse{} },
 		0x03: func() packets.Packet { return &packets.LoginAcknowledge{} },
 	},
-	// Login and Play states would go here...
+	StateConfig: {},
+	StatePlay:   {
+		// Play state would go here...
+	},
 }

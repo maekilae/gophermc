@@ -31,7 +31,7 @@ func Route(session Session, p packets.Packet) error {
 	handler, exists := handlers[p.ID()]
 	if !exists {
 		slog.Debug("Unhandled login packet", "id", p.ID())
-		return nil
+		return session.Disconnect("Unhandled or invalid login packet")
 	}
 	return handler(session, p)
 }
